@@ -3,21 +3,34 @@ const puppeteer = require('puppeteer-core');
 
 // note response from:
 //  /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-const BROWSER_WS = 'ws://127.0.0.1:9222/devtools/browser/c114f89b-b40f-412b-b18c-5d6fd3ca0c04';
+const BROWSER_WS = 'ws://127.0.0.1:9222/devtools/browser/6b71e67d-16c2-4c46-9365-7cf6acff2e15';
 
 const fbids = JSON.parse(fs.readFileSync('./tmp/fbid.json'));
 
 // helpers
-const randomDelay = () => new Promise((r) => setTimeout(r, Math.random() * 1000));
+const randomDelay = () => new Promise((r) => setTimeout(r, Math.random() * 3000 + 1000));
 
 // script to run in page context
 async function scraper() {
+  // preamble
+  function minMatch(tags, re) {
+    const min = tags.reduce((m, t) => {
+      const match = t.match(re);
+      if (!match) return m;
+      const date = Number.parseInt(match[1], 10) * 1000;
+      if (Number.isNaN(date)) return m;
+      return m === -1 ? date : Math.min(m, date);
+    }, -1);
+    return min === -1 ? undefined : min;
+  }
   const delay = () => new Promise((r) => setTimeout(r, 100));
 
-  // eslint-disable-next-line no-undef
-  const fbid = new URL(window.location.href).searchParams.get('fbid');
-
+  let attempt = 0;
   do { // loop forever
+    attempt += 1;
+
+    // eslint-disable-next-line no-undef
+    const fbid = new URL(window.location.href).searchParams.get('fbid');
     // eslint-disable-next-line no-undef
     const scripts = [...window.document.getElementsByTagName('script')];
     // loaded
@@ -33,18 +46,17 @@ async function scraper() {
       .map((s) => s.text);
 
     let match;
-    if (storyTag.length === 1) { // prefer exif time
-      match = storyTag[0].match(/backdated_time":\{"time":([0-9]+)/);
-    } else if (createdTag.length === 1) {
-      match = createdTag[0].match(/created_time":([0-9]+)/);
+    if (storyTag.length >= 1) { // prefer exif time
+      match = minMatch(storyTag, /backdated_time":\{"time":([0-9]+)/);
+    } else if (createdTag.length >= 1) {
+      match = minMatch(createdTag, /created_time":([0-9]+)/);
     }
-    if (match) {
-      const date = Number.parseInt(match[1], 10) * 1000;
-      if (!Number.isNaN(date)) return date;
-    }
+    if (match) return match;
 
     await delay(); // eslint-disable-line no-await-in-loop
-  } while (true); // eslint-disable-line no-constant-condition
+  } while (attempt < 500); // eslint-disable-line no-constant-condition
+
+  throw new Error('Maximum attempts reached');
 }
 
 // eslint-disable-next-line no-console
@@ -55,7 +67,7 @@ async function main() {
   if (fs.existsSync('./tmp/state.json')) state = JSON.parse(fs.readFileSync('./tmp/state.json'));
 
   log('connecting to', BROWSER_WS);
-  const browser = await puppeteer.connect({ browserWSEndpoint: BROWSER_WS });
+  const browser = await puppeteer.connect({ browserWSEndpoint: BROWSER_WS, defaultViewport: null });
   log('spawning page');
   const page = await browser.newPage();
 
@@ -64,11 +76,12 @@ async function main() {
   while (fbids.length) {
     line += 1;
     const fbid = fbids.shift();
-    log('processing', line, '/', total);
 
     if (state[fbid]) {
-      log('cached', fbid);
+      // log('cached', fbid);
       continue; // eslint-disable-line no-continue
+    } else {
+      log('processing', line, '/', total);
     }
 
     const url = `https://www.facebook.com/photo?fbid=${fbid}&set=pob.36702211`;
