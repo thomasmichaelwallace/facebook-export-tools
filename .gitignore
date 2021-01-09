@@ -116,3 +116,5 @@ dist
 .pnp.*
 
 tmp
+output
+_output
