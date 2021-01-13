@@ -41,6 +41,8 @@ function setTimes(file, ts) {
   setAttributeTimes(file, date);
 }
 
+module.exports = { setTimes };
+
 // main
 
 function main() {
@@ -55,4 +57,4 @@ function main() {
   });
   /* eslint-enable no-console */
 }
-main();
+if (process.env.FB_RUN) main();
