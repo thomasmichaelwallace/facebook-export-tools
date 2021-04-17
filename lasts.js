@@ -4,8 +4,7 @@ const { setTimes } = require('./tag');
 
 // note response from:
 //  /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-
-const BROWSER_WS = 'ws://127.0.0.1:9222/devtools/browser/3cc47cce-eccb-47c0-8753-6e0654276ac7';
+const BROWSER_WS = 'ws://127.0.0.1:9222/devtools/browser/__UUID__';
 
 // helpers
 const randomDelay = () => new Promise((r) => setTimeout(r, Math.random() * 3000 + 1000));
@@ -71,7 +70,6 @@ async function main() {
   const base = './facebook/photos_and_videos/your_posts';
   const files = fs.readdirSync(base);
 
-  const line = 0;
   while (files.length) {
     const file = files.shift();
 

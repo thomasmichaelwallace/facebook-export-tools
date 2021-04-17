@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer-core');
 
 // note response from:
 //  /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-const BROWSER_WS = 'ws://127.0.0.1:9222/devtools/browser/6b71e67d-16c2-4c46-9365-7cf6acff2e15';
+const BROWSER_WS = 'ws://127.0.0.1:9222/devtools/browser/__UUID__';
 
 const fbids = JSON.parse(fs.readFileSync('./tmp/fbid.json'));
 
